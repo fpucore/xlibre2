@@ -1,4 +1,3 @@
-
 # XLibre2
 
 ![Logo](assets/xlibre2-logo_512px.png)
@@ -71,4 +70,4 @@ The installer will automatically:
 
 ## License
 
-This project is licensed under **The MIT License**.
+This project is licensed under the **MIT License**.
