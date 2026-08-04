@@ -1,0 +1,35 @@
+# Maintainers: Chris McGimpsey-Jones <chrisjones.unixmen@gmail.com>, callmetango
+# Contributors: artist <artist@artixlinux.org>, Vitalii Kuzhdin <vitaliikuzhdin@gmail.com>, Andreas Radke <andyrtr@archlinux.org>, Laurent Carlier <lordheavym@gmail.com>
+
+pkgname=xlibre2-input-libinput
+_pkgname=xf86-input-libinput
+pkgver=26.8.0
+pkgrel=2
+pkgdesc="A fork of the XLibre build of the generic input driver based on libinput."
+arch=('x86_64')
+license=('MIT')
+url='https://www.freedompublishersunion.net/h-linux.html'
+depends=('libinput' 'glibc' 'xlibre2-xserver')
+makedepends=('xlibre2-devel' 'X-ABI-XINPUT_VERSION=26.0' 'meson' 'libxi' 'libx11' 'xorgproto')
+provides=('xf86-input-libinput')
+conflicts=('xf86-input-libinput' 'X-ABI-XINPUT_VERSION<26' 'X-ABI-XINPUT_VERSION>=27')
+groups=('xlibre-drivers')
+#source=("https://github.com/X11Libre/xf86-input-libinput/archive/refs/tags/xlibre-xf86-input-libinput-25.0.1.tar.gz")
+sha512sums=('SKIP')
+
+prepare() {
+# Clean dir naming
+rm -fr xlibre-xf86-input-libinput-25.0.1
+mv -f xf86-input-libinput-xlibre-xf86-input-libinput-25.0.1 xlibre-xf86-input-libinput-25.0.1
+}
+
+build() {
+  arch-meson xlibre-xf86-input-libinput-25.0.1 build \
+    -D xorg-conf-dir=/usr/share/X11/xorg.conf.d/
+
+  ninja -C build
+}
+
+package() {
+  DESTDIR="$pkgdir" ninja -C build install
+}
