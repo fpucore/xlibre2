@@ -51,7 +51,7 @@ The build requires:
 ```bash
 > gh repo clone fpucore/xlibre2
 
-> cd xlibre2
+> goto xlibre2
 ```
 
 ---
@@ -64,7 +64,7 @@ The build requires:
 
 The installer will automatically:
 
-* Create clean build environment 🧹
+* Create clean build env 🧹
 * Stage override files 📂
 * Build the libinput driver 🖱️
 * Build XLibre2 🖥️
@@ -75,13 +75,17 @@ The installer will automatically:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome, of course!
+
+Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+Also, if you prefer you can contribute to upstream XLibre.
 
 ---
 
@@ -93,8 +97,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🙏 Acknowledgments
 
-* Thanks to the XLibre project for the foundation
-* H-Linux community for integration support
-* All contributors who help improve this project
+* Thank you to the XLibre project for the foundations of this project
+* GNU Operating System / H-Linux for integration support
+* All contributors who help improve this project and its upstream project (XLibre)
 
 *Built with ❤️ for the H-Linux ecosystem*
