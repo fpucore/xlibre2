@@ -2,20 +2,18 @@ project('xserver', 'c',
         default_options: [
             'buildtype=debugoptimized',
             'c_std=gnu99',
+            'warning_level=1',
         ],
-        version: '26.8.0',
+        version: '26.9.0',
         meson_version: '>= 0.61.0',
 )
-release_date = '2026-08-04'
+release_date = '2026-11-01'
 
-add_project_arguments('-DHAVE_DIX_CONFIG_H', language: ['c', 'objc'])
 cc = meson.get_compiler('c')
 
 add_project_arguments('-fno-strict-aliasing', language : 'c')
 add_project_arguments('-fvisibility=hidden', language : 'c')
-add_project_arguments('-Wvla', language: 'c')
 add_project_arguments('-fno-common', language: 'c')
-add_project_arguments('-Wshift-negative-value', language: 'c')
 add_project_arguments('-Wchar-subscripts', language: 'c')
 
 # workaround for mesa bug causing GLsync to be typedef'ed multiple times
@@ -36,9 +34,8 @@ add_project_link_arguments('-fvisibility=hidden', language : 'c')
 conf_data = configuration_data()
 conf_data.set('_DIX_CONFIG_H_', '1')
 
-if cc.get_id() == 'gcc' or cc.get_id() == 'clang'
+if cc.get_id() in ['gcc', 'clang']
     test_wflags = [
-        '-Wall',
         '-Wchar-subscripts',
         '-Wpointer-arith',
         '-Wmissing-declarations',
@@ -68,6 +65,7 @@ if cc.get_id() == 'gcc' or cc.get_id() == 'clang'
         '-Werror=int-to-pointer-cast',
         '-Werror=pointer-to-int-cast',
         '-Woverride-init',
+        '-Wshift-negative-value',
         '-Wvla',
         '-Wincompatible-pointer-types',
     ]
@@ -84,7 +82,7 @@ endforeach
 
 add_project_arguments(common_wflags, language : ['c', 'objc'])
 
-libdrm_req = '>= 2.4.116'
+libdrm_req = '>= 2.4.89'
 libselinux_req = '>= 2.0.86'
 xext_req = '>= 1.0.99.4'
 xproto_req = '>= 7.0.31'
@@ -100,7 +98,7 @@ xextproto_dep = dependency('xextproto', version: '>= 7.2.99.901', fallback: ['xo
 inputproto_dep = dependency('inputproto', version: '>= 2.3.99.1', fallback: ['xorgproto', 'ext_xorgproto'])
 kbproto_dep = dependency('kbproto', version: '>= 1.0.3', fallback: ['xorgproto', 'ext_xorgproto'])
 fontsproto_dep = dependency('fontsproto', version: '>= 2.1.3', fallback: ['xorgproto', 'ext_xorgproto'])
-fixesproto_dep = dependency('fixesproto', version: '>= 6.0', fallback: ['xorgproto', 'ext_xorgproto'])
+fixesproto_dep = dependency('fixesproto', version: '>= 6.1', fallback: ['xorgproto', 'ext_xorgproto'])
 damageproto_dep = dependency('damageproto', version: '>= 1.1', fallback: ['xorgproto', 'ext_xorgproto'])
 xcmiscproto_dep = dependency('xcmiscproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'])
 bigreqsproto_dep = dependency('bigreqsproto', version: '>= 1.1.0', fallback: ['xorgproto', 'ext_xorgproto'])
@@ -115,7 +113,6 @@ xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', fallback: ['x
 dri2proto_dep = dependency('dri2proto', version: '>= 2.8', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri2') == 'true')
 dri3proto_dep = dependency('dri3proto', version: '>= 1.4', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri3') == 'true')
 xineramaproto_dep = dependency('xineramaproto', fallback: ['xorgproto', 'ext_xorgproto'])
-xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('xf86bigfont'))
 xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1', fallback: ['xorgproto', 'ext_xorgproto'])
 applewmproto_dep = dependency('applewmproto', version: '>= 1.4', fallback: ['xorgproto', 'ext_xorgproto'], required: false)
 xshmfence_dep = dependency('xshmfence', version: xshmfence_req, required: false)
@@ -201,7 +198,7 @@ endif
 glamor_option = get_option('glamor')
 
 hal_option = get_option('hal')
-if ['windows', 'darwin', 'cygwin'].contains(host_machine.system())
+if host_machine.system() in ['windows', 'darwin', 'cygwin']
     hal_option = 'false'
 endif
 
@@ -221,7 +218,6 @@ else
     build_seatd_libseat = get_option('seatd_libseat') == 'true'
 endif
 
-
 if get_option('systemd_logind') == 'auto'
     build_systemd_logind = build_udev_kms and dbus_dep.found() and not build_seatd_libseat
 else
@@ -237,25 +233,30 @@ if with_dtrace
     dtrace = find_program('dtrace', required: true)
 endif
 
+build_xorg_sdk = get_option('xorg-sdk')
+
 build_xorg = false
 if (host_machine.system() != 'windows')
     if get_option('xorg') == 'auto'
-        build_xorg = (host_machine.system() != 'darwin' and
-                      host_machine.system() != 'windows')
+        build_xorg = host_machine.system() not in ['darwin', 'windows']
     else
         build_xorg = get_option('xorg') == 'true'
     endif
 endif
+
+if build_xorg
+    build_xorg_sdk = true
+    libxcvt_dep = dependency('libxcvt', fallback: ['libxcvt', 'libxcvt_dep'], required: build_xorg)
+endif
+
 xorgsdkdir = join_paths(get_option('prefix'), get_option('includedir'), 'xorg')
-libxcvt_dep = dependency('libxcvt', fallback: ['libxcvt', 'libxcvt_dep'], required: build_xorg)
 
 ## configure Xnest - nesting X server
 build_xnest = get_option('xnest') != 'false'
 
 build_xwin = false
 if get_option('xwin') == 'auto'
-    if (host_machine.system() == 'cygwin' or
-        host_machine.system() == 'windows')
+    if host_machine.system() in ['cygwin', 'windows']
             build_xwin = true
     endif
 else
@@ -278,14 +279,33 @@ endif
 
 build_xvfb = get_option('xvfb')
 
+build_xephyr = get_option('xephyr')
+
+build_xfake = get_option('xfake')
+
+build_xfbdev = get_option('xfbdev')
+
+build_xmodesetting = get_option('xmodesetting')
+
+build_xserver = (build_xorg or
+                 build_xnest or
+                 build_xvfb or
+                 build_xquartz or
+                 build_xephyr or
+                 build_xfake or
+                 build_xfbdev or
+                 build_xmodesetting)
+
 summary({
         'Xorg': build_xorg,
         'Xnest': build_xnest,
         'Xvfb': build_xvfb,
         'Xwin': build_xwin,
         'Xquartz': build_xquartz,
-        'Xephyr': get_option('xephyr'),
-        'Xfbdev': get_option('xfbdev'),
+        'Xephyr': build_xephyr,
+        'Xfake': build_xfake,
+        'Xfbdev': build_xfbdev,
+        'Xmodesetting': build_xmodesetting,
     },
     section: 'DDX',
     bool_yn: true,
@@ -312,10 +332,10 @@ message('IPv6 support: ' + (build_ipv6 ? 'YES' : 'NO'))
 int10 = get_option('int10')
 if int10 == 'auto'
     int10 = 'x86emu'
-    if host_machine.cpu() == 'ppc' and host_machine.system() == 'freebsd'
+    if host_machine.cpu_family() in ['ppc', 'ppc64'] and host_machine.system() == 'freebsd'
         int10 = 'stub'
     endif
-    if host_machine.cpu() == 'arm'
+    if host_machine.cpu_family() == 'arm'
         int10 = 'stub'
     endif
 endif
@@ -365,11 +385,26 @@ else
     build_glamor = glamor_option == 'true'
 endif
 
-gbm_dep = dependency('', required: false)
+gbm_dep = dependency('gbm', version: gbm_req, required: false)
 epoxy_dep = dependency('', required: false)
 if build_glamor
-    gbm_dep = dependency('gbm', version: gbm_req, required: false)
     epoxy_dep = dependency('epoxy', required: false)
+endif
+
+gbm_option = get_option('gbm')
+if gbm_option == 'auto'
+    build_gbm = gbm_dep.found()
+else
+    build_gbm = (gbm_option == 'true')
+endif
+
+if build_gbm and not gbm_dep.found()
+    error('libgbm support requested, but libgbm is not available')
+endif
+
+# Don't even link to libgbm
+if not build_gbm
+    gbm_dep = dependency('', required: false)
 endif
 
 # Lots of sha1 options, because Linux is about choice :)
@@ -532,13 +567,11 @@ if not libdrm_dep.found() and libdrm_required
     error('DRI requested, but LIBDRM not found')
 endif
 
-build_modesetting = libdrm_dep.found() and dri2proto_dep.found()
+build_modesetting = libdrm_dep.found() and dri2proto_dep.found() and build_gbm
 
 build_vgahw = false
 if get_option('vgahw') == 'auto'
-    if (host_machine.system() != 'darwin' and
-        host_machine.system() != 'windows' and
-        host_machine.system() != 'cygwin')
+    if host_machine.system() not in ['darwin', 'windows', 'cygwin']
         build_vgahw = true
     endif
 else
@@ -550,7 +583,6 @@ if build_xquartz
     build_dpms = false
 endif
 
-build_xf86bigfont = get_option('xf86bigfont')
 build_screensaver = get_option('screensaver')
 build_res = get_option('xres')
 if build_res
@@ -590,9 +622,7 @@ endif
 build_acpi = false
 if (get_option('linux_acpi') == true and
    host_machine.system() == 'linux')
-    if (host_machine.cpu() == 'x86' or
-       host_machine.cpu() == 'x86_64' or
-       host_machine.cpu() == 'ia64')
+    if host_machine.cpu_family() in ['x86', 'x86_64', 'ia64']
         build_acpi = true
     endif
 endif
@@ -633,7 +663,6 @@ common_dep = [
     dri2proto_dep,
     dri3proto_dep,
     xineramaproto_dep,
-    xf86bigfontproto_dep,
     xf86dgaproto_dep,
     xf86vidmodeproto_dep,
     applewmproto_dep,
@@ -649,8 +678,7 @@ common_dep = [
 inc = include_directories(
     '.',
     'Xext',
-    'Xi',
-    'composite',
+    'Xext/dri2',
     'exa',
     'fb',
     'glamor',
@@ -658,14 +686,9 @@ inc = include_directories(
     'miext/damage',
     'miext/shadow',
     'miext/sync',
-    'dbe',
+    'msutil',
     'dix',
-    'dri3',
     'include',
-    'present',
-    'randr',
-    'render',
-    'xfixes',
     epoll_inc,
 )
 
@@ -695,8 +718,6 @@ endif
 if get_option('libunwind')
     common_dep += dependency('libunwind', required: true)
 endif
-
-glx_inc = include_directories('glx')
 
 top_dir_inc = include_directories('.')
 
@@ -748,83 +769,86 @@ if build_docs or build_docs_devel
     ]
 endif
 
+module_abi_tag = 'xlibre-25'
+
 # Include must come first, as it sets up dix-config.h
 subdir('include')
 
-# X server core
-subdir('config')
-subdir('dix')
-subdir('dri3')
-subdir('glx')
-subdir('fb')
-subdir('mi')
-subdir('os')
-# X extensions
-subdir('composite')
-subdir('dbe')
-subdir('miext/damage')
-subdir('miext/shadow')
-subdir('miext/sync')
-if build_rootless
-    subdir('miext/rootless')
-endif
-subdir('present')
-if build_xwin or build_xquartz
-    subdir('pseudoramiX')
-endif
-subdir('randr')
-subdir('record')
-subdir('render')
-subdir('xfixes')
-subdir('xkb')
-subdir('Xext')
-subdir('Xi')
-# other
-if build_glamor
-    subdir('glamor')
-endif
-if build_xorg or get_option('xephyr')
-    subdir('exa')
-endif
 subdir('doc')
 
-# Common static libraries of all X servers
-libxserver = [
-    libxserver_mi,
-    libxserver_dix,
+# X server core
+if build_xserver
+    subdir('config')
+    subdir('dix')
+    subdir('fb')
+    subdir('mi')
+    subdir('os')
+    subdir('miext/damage')
+    subdir('miext/shadow')
+    subdir('miext/sync')
+    if build_rootless
+        subdir('miext/rootless')
+    endif
+    subdir('Xext')
+    if build_glamor
+        subdir('glamor')
+    endif
+    if build_xorg or get_option('xephyr')
+        subdir('exa')
+    endif
 
-    libxserver_composite,
-    libxserver_damageext,
-    libxserver_dbe,
-    libxserver_randr,
-    libxserver_miext_damage,
-    libxserver_render,
-    libxserver_present,
-    libxserver_xext,
-    libxserver_miext_sync,
-    libxserver_xfixes,
-    libxserver_xi,
-    libxserver_xkb,
-    libxserver_record,
+    # Common static libraries of all X servers
+    libxserver = [
+        libxserver_mi,
+        libxserver_dix,
+        libxserver_composite,
+        libxserver_damageext,
+        libxserver_dbe,
+        libxserver_randr,
+        libxserver_miext_damage,
+        libxserver_render,
+        libxserver_present,
+        libxserver_xres,
+        libxserver_xext,
+        libxserver_xcmisc,
+        libxserver_sync,
+        libxserver_security,
+        libxserver_miext_sync,
+        libxserver_xfixes,
+        libxserver_xi,
+        libxserver_xkeyboard,
+        libxserver_record,
+        libxserver_os,
+        libxserver_dri2,
+        libxserver_dri3,
+        libxserver_xinerama,
+        libxserver_shm,
+        libxserver_dpms,
+        libxserver_xv,
+        libxserver_xtest,
+        libxserver_shape,
+        libxserver_saver,
+        libxserver_bigreq,
+        libxserver_geext
+    ]
 
-    libxserver_os,
-]
+    if build_xselinux
+        libxserver += libxserver_xselinux
+    endif
 
-libxserver += libxserver_dri3
-
-if build_namespace
-    subdir('Xext/namespace')
-    libxserver += libxserver_namespace
+    if build_namespace
+        subdir('Xext/namespace')
+        libxserver += libxserver_namespace
+    endif
 endif
 
 subdir('hw')
 
-build_tests = get_option('tests') and host_machine.system() != 'windows'
-if build_tests
+if (get_option('tests') and host_machine.system() != 'windows' and build_xserver)
     subdir('test')
 endif
 
-if build_xorg
+if build_xorg_sdk
     sdkconfig = configuration_data()
     awk = find_program('awk')
 
@@ -840,28 +864,28 @@ if build_xorg
     sdkconfig.set('abi_ansic',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_ANSIC.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h'),
+                    files('include/xf86Module.h'),
                     check: false
         ).stdout()
     )
     sdkconfig.set('abi_videodrv',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_VIDEODRV.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h'),
+                    files('include/xf86Module.h'),
                     check: false
         ).stdout()
     )
     sdkconfig.set('abi_xinput',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_XINPUT.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h'),
+                    files('include/xf86Module.h'),
                     check: false
         ).stdout()
     )
     sdkconfig.set('abi_extension',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_EXTENSION.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h'),
+                    files('include/xf86Module.h'),
                     check: false
         ).stdout()
     )
@@ -890,8 +914,7 @@ if build_xorg
 
     # On Windows, modules built with the SDK will need to link with server and
     # module implibs to resolve symbols
-    if (host_machine.system() == 'cygwin' or
-        host_machine.system() == 'windows')
+    if host_machine.system() in ['cygwin', 'windows']
         sdkconfig.set('XORG_DRIVER_LIBS', '-lXorg.exe -L\${moduledir} -lshadow -no-undefined')
     endif
 
@@ -937,14 +960,14 @@ configure_file(output : 'dix-config.h',
 configure_file(output : 'xorg-server.h',
                input : 'hw/xfree86/xlibre-server.h.meson.in',
                configuration : conf_data,
-               install: build_xorg,
+               install: build_xorg_sdk,
                install_dir: xorgsdkdir)
 
 # new config include file for drivers
 configure_file(output : 'xlibre-server.h',
                input : 'hw/xfree86/xlibre-server.h.meson.in',
                configuration : conf_data,
-               install: build_xorg,
+               install: build_xorg_sdk,
                install_dir: xorgsdkdir)
 
 configure_file(output : 'xorg-config.h',

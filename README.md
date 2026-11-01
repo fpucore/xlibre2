@@ -1,6 +1,6 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Version](https://img.shields.io/badge/version-26.8.0-blue)
+![Version](https://img.shields.io/badge/version-26.9.0-blue)
 ![Platform](https://img.shields.io/badge/platform-H--Linux-lightgrey)
 ![Maintenance](https://img.shields.io/badge/maintained%20by-fpucore-orange)
 
@@ -9,19 +9,19 @@
 ![Logo](assets/xlibre2-logo_512px.png)
 
 > **A modern, reproducible build of the X server**  
-> *A fork of the XLibre build with H-Linux integration*
+> *A fork of the XLibre build with added GNU Operating System / H-Linux integration*
 
 This repository contains the packaging, build environment, and installer for XLibre2 on GNU Operating System / H-Linux.
 
-Rather than distributing prebuilt binaries, this project provides a **reproducible build system** that compiles XLibre2 and its libinput driver directly from source, applies H-Linux integration modifications, packages the results, and installs them onto the running system.
+Rather than distributing prebuilt binaries, this project provides a **reproducible build system** that compiles XLibre2 and its libinput driver directly from source, applies integration modifications, packages the results, and installs them onto the running system.
 
-Ultimately, the goal is to make rebuilding XLibre2 straightforward while keeping H-Linux modification and patches separate from upstream XLibre.
+Ultimately, the goal is to make rebuilding XLibre2 straightforward while keeping modifications and patches separate from upstream XLibre.
 
 ---
 
 ## 🚀 Features
 
-* **Native H-Linux package generation** 📦
+* **Native GNU Operating System / H-Linux package generation** 📦
 * **Reproducible packaging** 🔁
 * **Automated build and installation** ⚙️
 * **Integrated libinput build procedure** 🖱️
@@ -34,8 +34,8 @@ Ultimately, the goal is to make rebuilding XLibre2 straightforward while keeping
 The build requires:
 
 * GNU Operating System / H-Linux instance 🐧
-* H-Linux human command layer 💻
-* H-Linux env library 🔧
+* H-Linux Human Command Layer 💻
+* H-Linux environment library 🔧
 * NLP 🧠
 * makepkg 📦
 * Meson 🏗️
@@ -59,7 +59,7 @@ The build requires:
 ## 🔨 Build & Install
 
 ```bash
-> ./install.sh
+> hash $here/install.hash
 ```
 
 The installer will automatically:
@@ -101,4 +101,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 * GNU Operating System / H-Linux for integration support
 * All contributors who help improve this project and its upstream project (XLibre)
 
-*Built with ❤️ for the H-Linux ecosystem*
+*Built with ❤️ for the GNU Operating System / H-Linux ecosystem*

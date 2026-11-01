@@ -29,11 +29,9 @@
  * the sale, use or other dealings in this Software without prior written
  * authorization from the copyright holder(s) and author(s).
  */
-
-#ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
-#endif
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -55,12 +53,17 @@
 #include "config/hotplug_priv.h"
 #include "dix/input_priv.h"
 #include "dix/screenint_priv.h"
+#include "include/xf86DDC.h"
+#include "include/xorgVersion.h"
 #include "mi/mi_priv.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"
 #include "os/log_priv.h"
 #include "os/osdep.h"
-#include "randr/randrstr_priv.h"
+#ifdef DPMSExtension
+#include "Xext/dpms/dpms_priv.h"
+#endif
+#include "Xext/randr/randrstr_priv.h"
 
 #include "servermd.h"
 #include "windowstr.h"
@@ -78,10 +81,8 @@
 #include "xf86_os_support.h"
 #include "xf86_OSlib.h"
 #include "xf86cmap.h"
-#include "xorgVersion.h"
 #include "mipointer.h"
 #include "xf86Extensions.h"
-#include "xf86DDC.h"
 #include "xf86Xinput.h"
 #include "xf86InPriv.h"
 #include "xf86Crtc.h"
@@ -92,7 +93,6 @@
 
 #ifdef DPMSExtension
 #include <X11/extensions/dpmsconst.h>
-#include "dpmsproc.h"
 #endif
 
 #ifdef __linux__
@@ -254,8 +254,7 @@ AddVTAtoms(CallbackListPtr *pcbl, void *data, void *screen)
                    "Failed to register VT properties\n");
 }
 
-static Bool
-xf86ScreenInit(ScreenPtr pScreen, int argc, char **argv)
+static bool xf86ScreenInit(ScreenPtr pScreen, int argc, char **argv, void *closure)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 
@@ -285,9 +284,9 @@ InitOutput(int argc, char **argv)
     int i, j, k, scr_index;
     const char **modulelist;
     void **optionlist;
-    Bool autoconfig = FALSE;
-    Bool sigio_blocked = FALSE;
-    Bool want_hw_access = FALSE;
+    bool autoconfig = FALSE;
+    bool sigio_blocked = FALSE;
+    bool want_hw_access = FALSE;
     GDevPtr configured_device;
 
     xf86Initialising = TRUE;
@@ -440,12 +439,12 @@ InitOutput(int argc, char **argv)
 	if (want_hw_access)
 	    xorgHWAccess = xf86EnableIO();
 
-        if (xf86BusConfig() == FALSE)
+        if (xf86BusConfig(xf86Info.singleDriver) == FALSE)
             return;
 
 
         /*
-         * Sort the drivers to match the requested ording.  Using a slow
+         * Sort the drivers to match the requested ordering.  Using a slow
          * bubble sort.
          */
         for (j = 0; j < xf86NumScreens - 1; j++) {
@@ -589,8 +588,8 @@ InitOutput(int argc, char **argv)
     if (xf86Info.vtno >= 0)
         AddCallback(&RootWindowFinalizeCallback, AddVTAtoms, NULL);
 
-    if (SeatId)
-        AddCallback(&RootWindowFinalizeCallback, AddSeatId, SeatId);
+    if (dixSettingSeatId)
+        AddCallback(&RootWindowFinalizeCallback, AddSeatId, dixSettingSeatId);
 
     /*
      * Use the previously collected parts to setup screenInfo
@@ -635,7 +634,7 @@ InitOutput(int argc, char **argv)
 #ifdef XFreeXDGA
         xf86Screens[i]->SetDGAMode = xf86SetDGAMode;
 #endif
-        scr_index = AddScreen(xf86ScreenInit, argc, argv);
+        scr_index = AddScreen(xf86ScreenInit, argc, argv, xf86Screens[i]);
         xf86VGAarbiterUnlock(xf86Screens[i]);
         if (scr_index == i) {
             /*
@@ -682,16 +681,21 @@ InitOutput(int argc, char **argv)
 #ifdef XFreeXDGA
         pScrn->SetDGAMode = xf86SetDGAMode;
 #endif
-        scr_index = AddGPUScreen(xf86ScreenInit, argc, argv);
+        scr_index = AddGPUScreen(xf86ScreenInit, argc, argv, pScrn);
         xf86VGAarbiterUnlock(pScrn);
-        if (scr_index == i) {
+        if (scr_index >= 0) {
             dixSetPrivate(&screenInfo.gpuscreens[scr_index]->devPrivates,
                           xf86ScreenKey, xf86GPUScreens[i]);
             pScrn->pScreen = screenInfo.gpuscreens[scr_index];
             /* The driver should set this, but make sure it is set anyway */
             pScrn->vtSema = TRUE;
         } else {
-            FatalError("AddScreen/ScreenInit failed for gpu driver %d %d\n", i, scr_index);
+            xf86Msg(X_ERROR, "AddScreen/ScreenInit failed for gpu driver %d %s; ignoring it and continuing\n",
+                    i, pScrn->driverName);
+            xf86DeleteScreen(pScrn);
+            /* Since the screen was not valid and we're skipping it, we need to also decrement i.
+               xf86DeleteScreen() compacted the array, so the next screen is now at this index */
+            --i;
         }
     }
 
@@ -755,14 +759,7 @@ CloseInput(void)
     LoaderClose();
 }
 
-/*
- * OsVendorInit --
- *      OS/Vendor-specific initialisations.  Called from OsInit(), which
- *      is called by dix before establishing the well known sockets.
- */
-
-void
-OsVendorInit(void)
+void ddxInit(void)
 {
     static Bool beenHere = FALSE;
 
@@ -861,7 +858,7 @@ ddxGiveUp(enum ExitCode error)
 }
 
 void
-OsVendorFatalError(const char *f, va_list args)
+ddxFatalError(const char *f, va_list args)
 {
     ErrorF("\nPlease consult the XLibre support: https://www.xlibre.net/\n");
     if (xf86LogFile && xf86LogFileWasOpened)
@@ -1167,6 +1164,10 @@ ddxProcessArgument(int argc, char **argv, int i)
         xf86Info.ShareVTs = TRUE;
         return 1;
     }
+    if (!strcmp(argv[i], "-fontserverconnections") || !strcmp(argv[i], "+fontserverconnections")) {
+        xf86FontserverFrom = X_CMDLINE;
+        return 0;
+    }
     if (!strcmp(argv[i], "-iglx") || !strcmp(argv[i], "+iglx")) {
         xf86Info.iglxFrom = X_CMDLINE;
         return 0;
@@ -1261,7 +1262,7 @@ xf86LoadModules(const char **list, void **optlist)
     void *opt;
     int i;
     char *name;
-    Bool failed = FALSE;
+    bool failed = FALSE;
 
     if (!list)
         return TRUE;

@@ -3,12 +3,12 @@
 
 pkgname=xlibre2-input-libinput
 _pkgname=xf86-input-libinput
-pkgver=26.8.0
-pkgrel=2
+pkgver=26.9.0
+pkgrel=1
 pkgdesc="A fork of the XLibre build of the generic input driver based on libinput."
 arch=('x86_64')
 license=('MIT')
-url='https://www.freedompublishersunion.net/h-linux.html'
+url='https://www.freedompublishersunion.net'
 depends=('libinput' 'glibc' 'xlibre2-xserver')
 makedepends=('xlibre2-devel' 'X-ABI-XINPUT_VERSION=26.0' 'meson' 'libxi' 'libx11' 'xorgproto')
 provides=('xf86-input-libinput')

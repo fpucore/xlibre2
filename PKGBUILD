@@ -4,8 +4,8 @@
 pkgbase=xlibre2-xserver
 _pkgbase="${pkgbase%-*}"
 pkgname=(xlibre2-xserver xlibre2-xephyr xlibre2-xvfb xlibre2-xnest xlibre2-common xlibre2-devel)
-pkgver=26.8.0
-pkgrel=2
+pkgver=26.9.0
+pkgrel=1
 arch=('x86_64')
 license=('LicenseRef-Adobe-Display-PostScript'
          'BSD-3-Clause' 
@@ -23,7 +23,7 @@ license=('LicenseRef-Adobe-Display-PostScript'
          'X11'
          'X11-distribute-modifications-variant')
 groups=('xlibre')
-url="https://www.freedompublishersunion.net/h-linux.html"
+url="https://www.freedompublishersunion.net"
 makedepends=('xorgproto' 'pixman' 'libx11'
              'libxkbfile' 'libxfont2' 'libpciaccess' 'libxv' 'libxcvt'
              'libxmu' 'libxrender' 'libxi' 'libxaw' 'libxtst' 'libxres'
@@ -37,7 +37,7 @@ source=(xvfb-run
         xvfb-run.1)
 
 prepare() {
-  cd "src/xlibre2-xserver-${pkgver}"
+  cd "src/xlibre2-xserver"
 }
 
 build() {
@@ -45,7 +45,7 @@ build() {
   export CXXFLAGS=${CXXFLAGS/-fno-plt}
   export LDFLAGS=${LDFLAGS/-Wl,-z,now}
 
-  arch-meson xlibre2-xserver-${pkgver} build \
+  arch-meson xlibre2-xserver build \
     --buildtype=release \
     -D ipv6=true \
     -D xvfb=true \
@@ -100,7 +100,7 @@ package_xlibre2-common() {
   _install fakeinstall/usr/share/man/man1/Xserver.1
 
   # license
-  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver-${pkgver}/COPYING
+  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver/COPYING
 }
 
 package_xlibre2-xserver() {
@@ -123,7 +123,7 @@ package_xlibre2-xserver() {
   install -m755 -d "${pkgdir}/etc/X11/xorg.conf.d"
 
   # license
-  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver-${pkgver}/COPYING
+  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver/COPYING
 }
 
 package_xlibre2-xephyr() {
@@ -138,7 +138,7 @@ package_xlibre2-xephyr() {
   _install fakeinstall/usr/share/man/man1/Xephyr.1
 
   # license
-  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver-${pkgver}/COPYING
+  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver/COPYING
 }
 
 package_xlibre2-xvfb() {
@@ -156,7 +156,7 @@ package_xlibre2-xvfb() {
   install -m644 "${srcdir}/xvfb-run.1" "${pkgdir}/usr/share/man/man1/"
 
   # license
-  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver-${pkgver}/COPYING
+  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver/COPYING
 }
 
 package_xlibre2-xnest() {
@@ -169,7 +169,7 @@ package_xlibre2-xnest() {
   _install fakeinstall/usr/share/man/man1/Xnest.1
 
   # license
-  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver-${pkgver}/COPYING
+  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver/COPYING
 }
 
 package_xlibre2-devel() {
@@ -188,7 +188,7 @@ package_xlibre2-devel() {
 #  rm fakeinstall/usr/share/X11/xorg.conf.d/10-nvidia-modules.conf
 
   # license
-  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver-${pkgver}/COPYING
+  install -m644 -Dt "${pkgdir}/usr/share/licenses/${pkgname}" ${_pkgbase}-xserver/COPYING
 
   # make sure there are no files left to install
   find fakeinstall -depth -print0 | xargs -0 rmdir
